@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto; padding: 20px; background: #f8f9fa; min-height: 100vh;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <div>
+            <h1 style="font-weight: 800; margin: 0; color: #1a1a1a; letter-spacing: -1px;">Patient Database</h1>
+            <p style="color: #6c757d; margin-top: 5px;">Manage and monitor registered hospital patients</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <input type="text" placeholder="Search by name..." style="background: white; border: 1px solid #dee2e6; color: #333; padding: 10px 15px; border-radius: 10px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+            
+            <button onclick="openAddPatientModal()" style="background: #238636; border: none; color: white; padding: 10px 24px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 12px rgba(35, 134, 54, 0.2);">
+                <i class="fas fa-plus" style="margin-right: 8px;"></i> Add Patient
+            </button>
+        </div>
+    </div>
+
+    <div style="background: white; border-radius: 16px; border: 1px solid #ececf1; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.04);">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="background: #f1f3f5; color: #495057; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
+                <tr>
+                    <th style="padding: 20px;">Patient ID</th>
+                    <th>Basic Information</th>
+                    <th>Medical Condition</th>
+                    <th>Assigned Room</th>
+                    <th style="text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="patient-list">
+                <tr class="patient-row" style="border-bottom: 1px solid #f1f3f5;">
+                    <td style="padding: 20px; font-family: monospace; color: #007bff; font-weight: bold;">#001</td>
+                    <td>
+                        <div style="font-weight: bold; color: #2d3436;">Rahul Sharma</div>
+                        <div style="font-size: 0.8rem; color: #636e72;">45 Years • Male</div>
+                    </td>
+                    <td>
+                        <span style="background: #fff5f5; color: #e03131; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid #ffc9c9;">
+                            Hypertension
+                        </span>
+                    </td>
+                    <td style="color: #2d3436;"><i class="fas fa-bed" style="margin-right: 8px; color: #adb5bd;"></i>B-102</td>
+                    <td style="text-align: center;">
+                        <button class="action-btn" title="View History"><i class="fas fa-history"></i></button>
+                        <button class="action-btn" title="Edit Profile"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn" style="color: #fa5252;" title="Discharge"><i class="fas fa-user-check"></i></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index:1000;">
+    <div id="addPatientModal" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:20px; width:400px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
+        <h3 style="margin-top:0; color:#1a1a1a; font-size:1.5rem;">Add New Patient</h3>
+        <p style="color:#6c757d; font-size:0.9rem; margin-bottom:20px;">Enter the details of the new patient below.</p>
+        
+        <div style="margin-bottom:15px;">
+            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.85rem;">Patient Name</label>
+            <input type="text" id="patientName" placeholder="e.g. Rahul Sharma" style="width:100%; padding:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+        </div>
+        
+        <div style="margin-bottom:15px;">
+            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.85rem;">Age</label>
+            <input type="number" id="patientAge" placeholder="e.g. 45" style="width:100%; padding:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+        </div>
+
+        <div style="margin-bottom:25px;">
+            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.85rem;">Medical Condition</label>
+            <input type="text" id="patientCondition" placeholder="e.g. Hypertension" style="width:100%; padding:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+        </div>
+
+        <div style="display:flex; gap:10px;">
+            <button onclick="submitPatient()" style="flex:2; background:#238636; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer;">Save Patient</button>
+            <button onclick="closeModal()" style="flex:1; background:#f1f3f5; color:#495057; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .patient-row:hover { background: #f8f9fa; }
+    .action-btn {
+        background: white;
+        border: 1px solid #dee2e6;
+        color: #6c757d;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin: 0 3px;
+        transition: 0.2s;
+    }
+    .action-btn:hover {
+        border-color: #007bff;
+        color: #007bff;
+        background: #f0f7ff;
+    }
+</style>
+
+<script>
+    function openAddPatientModal() {
+        document.getElementById('modalOverlay').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').style.display = 'none';
+    }
+
+    function submitPatient() {
+        const name = document.getElementById('patientName').value;
+        const age = document.getElementById('patientAge').value;
+        const condition = document.getElementById('patientCondition').value;
+
+        if(!name || !age || !condition) {
+            alert("Please fill all fields!");
+            return;
+        }
+
+        // Backend API call
+        fetch('/api/add_patient', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, age, condition })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert("Patient added successfully!");
+            closeModal();
+            location.reload(); 
+        })
+        .catch(err => console.error("Error:", err));
+    }
+</script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}

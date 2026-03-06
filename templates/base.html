@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Health.AI Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #0f111a; color: #ffffff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
+        .sidebar { width: 260px; background: #161b22; height: 100vh; padding: 20px; position: fixed; border-right: 1px solid #30363d; }
+        .main-content { margin-left: 280px; padding: 30px; width: 100%; }
+        .nav-link { 
+            display: flex; align-items: center; padding: 12px 20px; 
+            color: #8b949e; text-decoration: none; border-radius: 8px; margin-bottom: 8px; transition: 0.3s;
+        }
+        .nav-link:hover, .nav-link.active { background: #1f6feb; color: white; }
+        .nav-link i { margin-right: 12px; width: 20px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2 style="color: #58a6ff; margin-bottom: 40px; padding-left: 15px;">Health.AI</h2>
+        <nav>
+            <a href="/" class="nav-link {{ 'active' if request.path == '/' }}"><i class="fas fa-chart-line"></i> Vitals Stream</a>
+            <a href="/alerts" class="nav-link {{ 'active' if request.path == '/alerts' }}"><i class="fas fa-exclamation-triangle"></i> Alerts</a>
+            <a href="/patients" class="nav-link {{ 'active' if request.path == '/patients' }}"><i class="fas fa-user-injured"></i> Patients</a>
+            <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' }}"><i class="fas fa-cog"></i> Settings</a>
+        </nav>
+    </div>
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

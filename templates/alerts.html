@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto; padding: 10px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div>
+            <h1 style="font-weight: 700; margin: 0; display: flex; align-items: center;">
+                <i class="fas fa-exclamation-triangle" style="color: #f85149; margin-right: 15px;"></i>
+                Real-Time Health Alerts
+            </h1>
+            <p style="color: #8b949e; margin: 5px 0 0 0;">Instant notifications for critical patient vitals</p>
+        </div>
+        <div id="connection-status" style="background: rgba(35, 134, 54, 0.1); padding: 8px 15px; border-radius: 20px; border: 1px solid #238636; color: #238636; font-size: 0.8rem; font-weight: bold;">
+            ● SYSTEM ACTIVE
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+        <button onclick="clearAlerts()" style="background: #30363d; border: 1px solid #424b53; color: white; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+            <i class="fas fa-trash"></i> Clear History
+        </button>
+        <div style="flex-grow: 1;"></div>
+        <label style="color: #8b949e; display: flex; align-items: center; font-size: 0.85rem;">
+            <input type="checkbox" id="sound-toggle" checked style="margin-right: 8px;"> Mute Alert Sound
+        </label>
+    </div>
+
+    <div id="alerts-container" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="text-align: center; padding: 50px; color: #8b949e;">
+            <i class="fas fa-shield-alt" style="font-size: 3rem; opacity: 0.3; margin-bottom: 15px;"></i>
+            <p>Scanning for anomalies...</p>
+        </div>
+    </div>
+</div>
+
+<audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+<script>
+    let lastAlertCount = 0;
+
+    async function fetchAlerts() {
+        try {
+            const res = await fetch('/api/vitals');
+            const json = await res.json();
+            const data = json.data;
+            
+            
+            const criticalAlerts = data.filter(d => d.severity === 'HIGH' || d.severity === 'MEDIUM');
+            
+            const container = document.getElementById('alerts-container');
+            
+            if (criticalAlerts.length === 0) {
+                container.innerHTML = `<div style="text-align: center; padding: 50px; color: #8b949e;">No active threats detected.</div>`;
+                return;
+            }
+
+            
+            if (criticalAlerts.length > lastAlertCount && !document.getElementById('sound-toggle').checked) {
+                if (criticalAlerts[0].severity === 'HIGH') {
+                    document.getElementById('alert-sound').play();
+                }
+            }
+            lastAlertCount = criticalAlerts.length;
+
+            container.innerHTML = criticalAlerts.map(alert => `
+                <div style="background: #161b22; border-left: 5px solid ${alert.severity === 'HIGH' ? '#f85149' : '#f2cc60'}; 
+                            padding: 20px; border-radius: 8px; border-top: 1px solid #30363d; 
+                            border-right: 1px solid #30363d; border-bottom: 1px solid #30363d;
+                            display: flex; justify-content: space-between; align-items: center;
+                            animation: slideIn 0.3s ease-out;">
+                    <div>
+                        <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                            <span style="color: ${alert.severity === 'HIGH' ? '#f85149' : '#f2cc60'}; font-weight: bold; font-size: 1.1rem; margin-right: 15px;">
+                                ${alert.patient_id}
+                            </span>
+                            <span style="background: ${alert.severity === 'HIGH' ? 'rgba(248, 81, 73, 0.1)' : 'rgba(242, 204, 96, 0.1)'}; 
+                                         color: ${alert.severity === 'HIGH' ? '#f85149' : '#f2cc60'}; 
+                                         padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; border: 1px solid;">
+                                ${alert.severity} PRIORITY
+                            </span>
+                        </div>
+                        <div style="color: #c9d1d9; font-size: 1rem;">
+                            Critical Vitals: <b>${alert.heart_rate} BPM</b> | <b>${alert.spo2}% SpO2</b>
+                        </div>
+                        <div style="color: #8b949e; font-size: 0.8rem; margin-top: 8px;">
+                            <i class="far fa-clock"></i> Detected at ${alert.timestamp}
+                        </div>
+                    </div>
+                    <button style="background: #238636; border: none; color: white; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        ACKNOWLEDGE
+                    </button>
+                </div>
+            `).join('');
+
+        } catch (e) {
+            console.error("Alert fetch error:", e);
+        }
+    }
+
+    function clearAlerts() {
+        document.getElementById('alerts-container').innerHTML = '<div style="text-align: center; padding: 50px; color: #8b949e;">History cleared. Monitoring...</div>';
+    }
+
+    
+    setInterval(fetchAlerts, 1000);
+    fetchAlerts();
+</script>
+
+<style>
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
