@@ -7,13 +7,8 @@ app = Flask(__name__)
 
 # --- DATABASE CONNECTION ---
 def get_db_connection():
-    return psycopg2.connect(
-        host="localhost",
-        database="health_monitor",
-        user="health_admin",
-        password="admin_password",
-        port="5432"
-    )
+  return psycopg2.connect(os.environ.get('DATABASE_URL')
+)
 
 # --- 1. FRONTEND ROUTES ---
 
