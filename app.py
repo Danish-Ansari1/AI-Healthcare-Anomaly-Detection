@@ -10,7 +10,7 @@ def get_db_connection():
     return psycopg2.connect(os.environ.get('DATABASE_URL'))
 
 def init_db():
-    """App start hote hi tables banane ke liye"""
+    
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -79,6 +79,6 @@ def get_stats():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == "__main__":
-    # Render ke liye sahi port set karna
+   
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
