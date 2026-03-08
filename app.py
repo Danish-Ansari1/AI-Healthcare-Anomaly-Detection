@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__)
 
-# --- DATABASE CONNECTION ---
+# --- 1. DATABASE CONNECTION ---
 def get_db_connection():
     db_url = os.environ.get('DATABASE_URL')
     
@@ -20,7 +20,7 @@ def get_db_connection():
             port="5432"
         )
 
-# --- 1. FRONTEND ROUTES ---
+# --- 2. FRONTEND ROUTES ---
 
 @app.route('/')
 def index():
@@ -46,19 +46,14 @@ def patients_page():
 
 @app.route('/settings')
 def settings():
-    """System Settings Page"""
     return render_template('settings.html')
 
-
-# --- 2. API ROUTES ---
+# --- 3. API ROUTES ---
 
 @app.route('/api/add_patient', methods=['POST'])
 def add_patient():
-    """Naya patient save karna"""
     data = request.get_json()
-    name = data.get('name')
-    age = data.get('age')
-    condition = data.get('condition')
+    name, age, condition = data.get('name'), data.get('age'), data.get('condition')
 
     if not name or not age or not condition:
         return jsonify({"status": "error", "message": "Missing data"}), 400
@@ -73,23 +68,20 @@ def add_patient():
         conn.commit()
         cur.close()
         conn.close()
-        return jsonify({"status": "success", "message": "Patient added successfully!"}), 201
+        return jsonify({"status": "success", "message": "Patient added!"}), 201
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/vitals')
 def get_vitals():
-    """Live vitals data fetch karna"""
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute('''
             SELECT patient_id, timestamp, heart_rate, spo2, temperature, 
                    blood_pressure_systolic AS bp_sys, 
-                   blood_pressure_diastolic AS bp_dia, 
-                   severity
-            FROM patient_vitals
-            ORDER BY timestamp DESC LIMIT 50
+                   blood_pressure_diastolic AS bp_dia, severity
+            FROM patient_vitals ORDER BY timestamp DESC LIMIT 50
         ''')
         vitals = cur.fetchall()
         for v in vitals:
@@ -103,7 +95,6 @@ def get_vitals():
 
 @app.route('/api/stats')
 def get_stats():
-    """Dashboard stats counts"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -126,9 +117,8 @@ def get_stats():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-# --- START APP ---
+# --- 4. START SERVER ---
 
 if __name__ == "__main__":
-
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
