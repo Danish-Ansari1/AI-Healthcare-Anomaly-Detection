@@ -7,6 +7,7 @@ app = Flask(__name__)
 
 # --- 1. DATABASE CONNECTION ---
 def get_db_connection():
+    # Render Dashboard se 'DATABASE_URL' uthayega
     db_url = os.environ.get('DATABASE_URL')
     
     if db_url:
@@ -41,7 +42,7 @@ def patients_page():
         conn.close()
         return render_template('patients.html', patients=patients_list)
     except Exception as e:
-        print(f"Error fetching patients: {e}")
+        print(f"Error: {e}")
         return render_template('patients.html', patients=[])
 
 @app.route('/settings')
@@ -53,17 +54,15 @@ def settings():
 @app.route('/api/add_patient', methods=['POST'])
 def add_patient():
     data = request.get_json()
-    name, age, condition = data.get('name'), data.get('age'), data.get('condition')
-
-    if not name or not age or not condition:
+    name, age, cond = data.get('name'), data.get('age'), data.get('condition')
+    if not name or not age or not cond:
         return jsonify({"status": "error", "message": "Missing data"}), 400
-
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO patients (name, age, condition, room, gender) VALUES (%s, %s, %s, %s, %s)",
-            (name, age, condition, "TBD", "Unknown")
+            (name, age, cond, "TBD", "Unknown")
         )
         conn.commit()
         cur.close()
@@ -85,8 +84,7 @@ def get_vitals():
         ''')
         vitals = cur.fetchall()
         for v in vitals:
-            if v['timestamp']:
-                v['timestamp'] = v['timestamp'].strftime('%H:%M:%S')
+            if v['timestamp']: v['timestamp'] = v['timestamp'].strftime('%H:%M:%S')
         cur.close()
         conn.close()
         return jsonify({'status': 'success', 'data': vitals})
@@ -99,21 +97,14 @@ def get_stats():
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("SELECT COUNT(DISTINCT patient_id) FROM patient_vitals")
-        total_patients = cur.fetchone()[0]
+        total_pts = cur.fetchone()[0]
         cur.execute("SELECT COUNT(*) FROM patient_vitals WHERE severity = 'HIGH'")
-        high_alerts = cur.fetchone()[0]
+        high = cur.fetchone()[0]
         cur.execute("SELECT COUNT(*) FROM patient_vitals WHERE severity = 'MEDIUM'")
-        med_alerts = cur.fetchone()[0]
+        med = cur.fetchone()[0]
         cur.close()
         conn.close()
-        return jsonify({
-            'status': 'success',
-            'data': {
-                'total_pts': total_patients or 0,
-                'high_alerts': high_alerts or 0,
-                'med_alerts': med_alerts or 0
-            }
-        })
+        return jsonify({'status': 'success', 'data': {'total_pts': total_pts or 0, 'high_alerts': high or 0, 'med_alerts': med or 0}})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
