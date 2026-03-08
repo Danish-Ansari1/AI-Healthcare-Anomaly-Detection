@@ -1,4 +1,10 @@
 streamlit
+kafka-python
+scikit-learn
+torch
+torchvision
 psycopg2-binary
-pandas
+Flask
+flask-cors
 numpy
+pandas
