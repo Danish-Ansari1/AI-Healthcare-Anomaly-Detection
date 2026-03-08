@@ -5,17 +5,22 @@ import os
 
 app = Flask(__name__)
 
-# --- DATABASE CONNECTION ---
+# --- 1. DATABASE CONNECTION ---
 def get_db_connection():
-    return psycopg2.connect(
-        host="localhost",
-        database="health_monitor",
-        user="health_admin",
-        password="admin_password",
-        port="5432"
-    )
+    db_url = os.environ.get('DATABASE_URL')
+    
+    if db_url:
+        return psycopg2.connect(db_url)
+    else:
+        return psycopg2.connect(
+            host="localhost",
+            database="health_monitor",
+            user="health_admin",
+            password="admin_password",
+            port="5432"
+        )
 
-# --- 1. FRONTEND ROUTES ---
+# --- 2. FRONTEND ROUTES ---
 
 @app.route('/')
 def index():
@@ -29,7 +34,7 @@ def alerts():
 
 @app.route('/patients')
 def patients_page():
-    """Database se patients ki list fetch karke page par dikhana"""
+    """Database se patients fetch karke page par dikhana"""
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -47,18 +52,14 @@ def settings():
     """System Settings Page"""
     return render_template('settings.html')
 
-
-# --- 2. API ROUTES (DATA & ACTIONS) ---
+# --- 3. API ROUTES ---
 
 @app.route('/api/add_patient', methods=['POST'])
 def add_patient():
-    """Naya patient database mein save karne ke liye"""
     data = request.get_json()
-    name = data.get('name')
-    age = data.get('age')
-    condition = data.get('condition')
+    name, age, cond = data.get('name'), data.get('age'), data.get('condition')
 
-    if not name or not age or not condition:
+    if not name or not age or not cond:
         return jsonify({"status": "error", "message": "Missing data"}), 400
 
     try:
@@ -66,38 +67,31 @@ def add_patient():
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO patients (name, age, condition, room, gender) VALUES (%s, %s, %s, %s, %s)",
-            (name, age, condition, "TBD", "Unknown")
+            (name, age, cond, "TBD", "Unknown")
         )
         conn.commit()
         cur.close()
         conn.close()
-        return jsonify({"status": "success", "message": "Patient added successfully!"}), 201
+        return jsonify({"status": "success", "message": "Patient added!"}), 201
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/vitals')
 def get_vitals():
-    """Table aur Graph ke liye live data (BP Fix ke saath)"""
+    """Live vitals data fetch karna"""
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        
         cur.execute('''
             SELECT patient_id, timestamp, heart_rate, spo2, temperature, 
                    blood_pressure_systolic AS bp_sys, 
-                   blood_pressure_diastolic AS bp_dia, 
-                   severity
-            FROM patient_vitals
-            ORDER BY timestamp DESC LIMIT 50
+                   blood_pressure_diastolic AS bp_dia, severity
+            FROM patient_vitals ORDER BY timestamp DESC LIMIT 50
         ''')
-        
         vitals = cur.fetchall()
-        
         for v in vitals:
             if v['timestamp']:
                 v['timestamp'] = v['timestamp'].strftime('%H:%M:%S')
-        
         cur.close()
         conn.close()
         return jsonify({'status': 'success', 'data': vitals})
@@ -106,33 +100,32 @@ def get_vitals():
 
 @app.route('/api/stats')
 def get_stats():
-    """Dashboard cards ke liye counts"""
+    """Dashboard counts fetch karna"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
         cur.execute("SELECT COUNT(DISTINCT patient_id) FROM patient_vitals")
-        total_patients = cur.fetchone()[0]
-        
+        total_pts = cur.fetchone()[0]
         cur.execute("SELECT COUNT(*) FROM patient_vitals WHERE severity = 'HIGH'")
-        high_alerts = cur.fetchone()[0]
-        
+        high = cur.fetchone()[0]
         cur.execute("SELECT COUNT(*) FROM patient_vitals WHERE severity = 'MEDIUM'")
-        med_alerts = cur.fetchone()[0]
-        
+        med = cur.fetchone()[0]
         cur.close()
         conn.close()
-
         return jsonify({
             'status': 'success',
             'data': {
-                'total_pts': total_patients or 0,
-                'high_alerts': high_alerts or 0,
-                'med_alerts': med_alerts or 0
+                'total_pts': total_pts or 0,
+                'high_alerts': high or 0,
+                'med_alerts': med or 0
             }
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+# --- 4. START SERVER ---
+
+if __name__ == "__main__":
+    
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
