@@ -134,5 +134,11 @@ def get_stats():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+import os
+
+# Baaki saara code...
+
+if __name__ == "__main__":
+    # Render assigned port use karega, agar nahi mila toh 10000 lega
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
