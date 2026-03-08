@@ -1,17 +1,22 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+from datetime import datetime
 
 app = Flask(__name__)
+CORS(app) # Taaki browser se data block na ho
 
 # --- 1. DATABASE CONNECTION ---
 def get_db_connection():
+    # Render automatically ye URL provide karta hai agar aapne DB connect kiya ho
     db_url = os.environ.get('DATABASE_URL')
     
     if db_url:
         return psycopg2.connect(db_url)
     else:
+        # Local testing ke liye (Aapka purana setup)
         return psycopg2.connect(
             host="localhost",
             database="health_monitor",
@@ -21,20 +26,16 @@ def get_db_connection():
         )
 
 # --- 2. FRONTEND ROUTES ---
-
 @app.route('/')
 def index():
-    """Main Dashboard Page"""
     return render_template('index.html')
 
 @app.route('/alerts')
 def alerts():
-    """Alerts History Page"""
     return render_template('alerts.html')
 
 @app.route('/patients')
 def patients_page():
-    """Database se patients fetch karke page par dikhana"""
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -44,23 +45,19 @@ def patients_page():
         conn.close()
         return render_template('patients.html', patients=patients_list)
     except Exception as e:
-        print(f"Error fetching patients: {e}")
         return render_template('patients.html', patients=[])
 
 @app.route('/settings')
 def settings():
-    """System Settings Page"""
     return render_template('settings.html')
 
 # --- 3. API ROUTES ---
-
 @app.route('/api/add_patient', methods=['POST'])
 def add_patient():
     data = request.get_json()
+    if not data: return jsonify({"status": "error", "message": "No data"}), 400
+    
     name, age, cond = data.get('name'), data.get('age'), data.get('condition')
-
-    if not name or not age or not cond:
-        return jsonify({"status": "error", "message": "Missing data"}), 400
 
     try:
         conn = get_db_connection()
@@ -78,7 +75,6 @@ def add_patient():
 
 @app.route('/api/vitals')
 def get_vitals():
-    """Live vitals data fetch karna"""
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -100,7 +96,6 @@ def get_vitals():
 
 @app.route('/api/stats')
 def get_stats():
-    """Dashboard counts fetch karna"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -124,9 +119,6 @@ def get_stats():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # --- 4. START SERVER ---
-
-
 if __name__ == "__main__":
-    
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
