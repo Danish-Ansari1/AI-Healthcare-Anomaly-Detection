@@ -7,18 +7,25 @@ app = Flask(__name__)
 
 # --- 1. DATABASE CONNECTION ---
 def get_db_connection():
+    # Render par hum 'DATABASE_URL' Environment Variable set karenge
     db_url = os.environ.get('DATABASE_URL')
     
-    if db_url:
-        return psycopg2.connect(db_url)
-    else:
-        return psycopg2.connect(
-            host="localhost",
-            database="health_monitor",
-            user="health_admin",
-            password="admin_password",
-            port="5432"
-        )
+    try:
+        if db_url:
+            # Online Database (Neon.tech) se connect karega
+            return psycopg2.connect(db_url)
+        else:
+            # Aapke local computer ke liye fallback
+            return psycopg2.connect(
+                host="localhost",
+                database="health_monitor",
+                user="health_admin",
+                password="admin_password",
+                port="5432"
+            )
+    except Exception as e:
+        print(f"Database Connection Error: {e}")
+        return None
 
 # --- 2. FRONTEND ROUTES ---
 
@@ -35,9 +42,13 @@ def alerts():
 @app.route('/patients')
 def patients_page():
     """Database se patients fetch karke page par dikhana"""
+    conn = get_db_connection()
+    if not conn:
+        return render_template('patients.html', patients=[], error="Database Connection Failed")
+    
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
+        # Check karein ki table exist karti hai ya nahi
         cur.execute("SELECT * FROM patients ORDER BY id DESC")
         patients_list = cur.fetchall()
         cur.close()
@@ -49,7 +60,6 @@ def patients_page():
 
 @app.route('/settings')
 def settings():
-    """System Settings Page"""
     return render_template('settings.html')
 
 # --- 3. API ROUTES ---
@@ -57,13 +67,17 @@ def settings():
 @app.route('/api/add_patient', methods=['POST'])
 def add_patient():
     data = request.get_json()
-    name, age, cond = data.get('name'), data.get('age'), data.get('condition')
+    name = data.get('name')
+    age = data.get('age')
+    cond = data.get('condition')
 
     if not name or not age or not cond:
         return jsonify({"status": "error", "message": "Missing data"}), 400
 
+    conn = get_db_connection()
+    if not conn: return jsonify({"status": "error", "message": "DB Connection Fail"}), 500
+
     try:
-        conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO patients (name, age, condition, room, gender) VALUES (%s, %s, %s, %s, %s)",
@@ -78,9 +92,9 @@ def add_patient():
 
 @app.route('/api/vitals')
 def get_vitals():
-    """Live vitals data fetch karna"""
+    conn = get_db_connection()
+    if not conn: return jsonify({"status": "error"}), 500
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute('''
             SELECT patient_id, timestamp, heart_rate, spo2, temperature, 
@@ -98,35 +112,9 @@ def get_vitals():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/api/stats')
-def get_stats():
-    """Dashboard counts fetch karna"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(DISTINCT patient_id) FROM patient_vitals")
-        total_pts = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM patient_vitals WHERE severity = 'HIGH'")
-        high = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM patient_vitals WHERE severity = 'MEDIUM'")
-        med = cur.fetchone()[0]
-        cur.close()
-        conn.close()
-        return jsonify({
-            'status': 'success',
-            'data': {
-                'total_pts': total_pts or 0,
-                'high_alerts': high or 0,
-                'med_alerts': med or 0
-            }
-        })
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
 # --- 4. START SERVER ---
 
-
 if __name__ == "__main__":
-    
+    # Render automatic 'PORT' environment variable deta hai
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
