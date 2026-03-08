@@ -9,4 +9,4 @@ kafka-python==2.0.2
 torch==2.1.2
 torchvision==0.16.2
 plotly==5.18.0
-streamlit
+gunicorn
