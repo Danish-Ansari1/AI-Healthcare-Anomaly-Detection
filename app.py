@@ -7,29 +7,31 @@ app = Flask(__name__)
 
 # --- DATABASE CONNECTION ---
 def get_db_connection():
-    return psycopg2.connect(
-        host="localhost",
-        database="health_monitor",
-        user="health_admin",
-        password="admin_password",
-        port="5432"
-    )
+    db_url = os.environ.get('DATABASE_URL')
+    
+    if db_url:
+        return psycopg2.connect(db_url)
+    else:
+        return psycopg2.connect(
+            host="localhost",
+            database="health_monitor",
+            user="health_admin",
+            password="admin_password",
+            port="5432"
+        )
 
 # --- 1. FRONTEND ROUTES ---
 
 @app.route('/')
 def index():
-    """Main Dashboard Page"""
     return render_template('index.html')
 
 @app.route('/alerts')
 def alerts():
-    """Alerts History Page"""
     return render_template('alerts.html')
 
 @app.route('/patients')
 def patients_page():
-    """Database se patients ki list fetch karke page par dikhana"""
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -48,11 +50,11 @@ def settings():
     return render_template('settings.html')
 
 
-# --- 2. API ROUTES (DATA & ACTIONS) ---
+# --- 2. API ROUTES ---
 
 @app.route('/api/add_patient', methods=['POST'])
 def add_patient():
-    """Naya patient database mein save karne ke liye"""
+    """Naya patient save karna"""
     data = request.get_json()
     name = data.get('name')
     age = data.get('age')
@@ -77,12 +79,10 @@ def add_patient():
 
 @app.route('/api/vitals')
 def get_vitals():
-    """Table aur Graph ke liye live data (BP Fix ke saath)"""
+    """Live vitals data fetch karna"""
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        
         cur.execute('''
             SELECT patient_id, timestamp, heart_rate, spo2, temperature, 
                    blood_pressure_systolic AS bp_sys, 
@@ -91,13 +91,10 @@ def get_vitals():
             FROM patient_vitals
             ORDER BY timestamp DESC LIMIT 50
         ''')
-        
         vitals = cur.fetchall()
-        
         for v in vitals:
             if v['timestamp']:
                 v['timestamp'] = v['timestamp'].strftime('%H:%M:%S')
-        
         cur.close()
         conn.close()
         return jsonify({'status': 'success', 'data': vitals})
@@ -106,23 +103,18 @@ def get_vitals():
 
 @app.route('/api/stats')
 def get_stats():
-    """Dashboard cards ke liye counts"""
+    """Dashboard stats counts"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
         cur.execute("SELECT COUNT(DISTINCT patient_id) FROM patient_vitals")
         total_patients = cur.fetchone()[0]
-        
         cur.execute("SELECT COUNT(*) FROM patient_vitals WHERE severity = 'HIGH'")
         high_alerts = cur.fetchone()[0]
-        
         cur.execute("SELECT COUNT(*) FROM patient_vitals WHERE severity = 'MEDIUM'")
         med_alerts = cur.fetchone()[0]
-        
         cur.close()
         conn.close()
-
         return jsonify({
             'status': 'success',
             'data': {
@@ -134,11 +126,9 @@ def get_stats():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-import os
-
-# Baaki saara code...
+# --- START APP ---
 
 if __name__ == "__main__":
-    # Render assigned port use karega, agar nahi mila toh 10000 lega
+
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
