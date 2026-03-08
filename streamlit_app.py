@@ -3,78 +3,90 @@ import pandas as pd
 import psycopg2
 import os
 
-# Page Configuration
+# 1. Page Config
 st.set_page_config(page_title="AI Health Monitor", layout="wide", page_icon="🏥")
 
-# 1. Database Connection Function
+# 2. Database Connection Function
 def get_db_connection():
     try:
-        # Pehle secrets se check karega, phir environment variables se
-        conn_string = st.secrets.get("DATABASE_URL") or os.environ.get('DATABASE_URL')
-        return psycopg2.connect(conn_string)
+        # Pehle st.secrets check karega (Cloud ke liye), phir os.environ (Local ke liye)
+        conn_str = st.secrets.get("DATABASE_URL") or os.environ.get('DATABASE_URL')
+        if not conn_str:
+            return None
+        return psycopg2.connect(conn_str)
     except Exception as e:
-        st.error(f"Database se connect nahi ho paye: {e}")
+        st.error(f"❌ Database Connection Error: {e}")
         return None
 
-# 2. Table Banane Wala Function (Agar table nahi hai toh bana dega)
+# 3. Table Creation Function (Jo table missing thi, ye use bana dega)
 def init_db():
     conn = get_db_connection()
     if conn:
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS patient_vitals (
-                id SERIAL PRIMARY KEY,
-                patient_name TEXT,
-                heart_rate INTEGER,
-                blood_pressure TEXT,
-                temperature FLOAT,
-                severity TEXT DEFAULT 'NORMAL',
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        conn.commit()
-        cur.close()
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS patient_vitals (
+                    id SERIAL PRIMARY KEY,
+                    patient_name TEXT,
+                    heart_rate INTEGER,
+                    blood_pressure TEXT,
+                    temperature FLOAT,
+                    severity TEXT DEFAULT 'NORMAL',
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            conn.commit()
+            cur.close()
+            conn.close()
+        except Exception as e:
+            st.error(f"Table banane mein error: {e}")
 
-# Database setup karein
+# Database initialize karein
 init_db()
 
 st.title("🏥 Patient Health Anomaly Detection")
 
 conn = get_db_connection()
 if conn:
-    # 3. Data Fetch Karna
+    st.sidebar.header("Filter Data")
+    
     try:
-        query = "SELECT * FROM patient_vitals ORDER BY timestamp DESC LIMIT 50"
-        df = pd.read_sql(query, conn)
+        # 4. Data Fetch Karna
+        df = pd.read_sql("SELECT * FROM patient_vitals ORDER BY timestamp DESC LIMIT 50", conn)
         
-        if df.empty:
-            st.warning("Database connected hai, lekin abhi koi data nahi hai. Naya data daalein!")
-        else:
-            # Simple AI Anomaly Logic: Agar Heart Rate 100 se upar hai toh 'HIGH' alert
-            # (Ye code aapke metrics ko crash hone se bachayega)
-            df['severity'] = df['heart_rate'].apply(lambda x: 'HIGH' if x > 100 or x < 60 else 'NORMAL')
-
-            # 4. Dashboard Metrics
+        if not df.empty:
+            # 5. Dashboard Metrics (Safe Calculations)
             col1, col2, col3 = st.columns(3)
             col1.metric("Total Records", len(df))
-            col2.metric("High Alerts", len(df[df['severity'] == 'HIGH']))
-            col3.metric("Avg Heart Rate", f"{int(df['heart_rate'].mean())} BPM")
+            
+            # Severity check (agar column missing ho toh crash nahi hoga)
+            high_alerts = len(df[df['severity'] == 'HIGH']) if 'severity' in df.columns else 0
+            col2.metric("High Alerts", high_alerts)
+            
+            avg_hr = int(df['heart_rate'].mean()) if 'heart_rate' in df.columns else 0
+            col3.metric("Avg Heart Rate", f"{avg_hr} BPM")
 
-            # 5. Show Table
-            st.subheader("📋 Recent Patient Vitals")
+            # 6. Show Table
+            st.subheader("📋 Recent Vitals")
             st.dataframe(df, use_container_width=True)
             
-            # 6. Chart Dikhana
+            # 7. Chart (Timestamp check)
             st.subheader("📈 Heart Rate Trend")
-            if 'timestamp' in df.columns:
-                chart_data = df.set_index('timestamp')['heart_rate']
-                st.line_chart(chart_data)
+            if 'timestamp' in df.columns and not df['timestamp'].isnull().all():
+                st.line_chart(df.set_index('timestamp')['heart_rate'])
+        else:
+            st.info("ℹ️ Database connected hai, par abhi koi data nahi hai. Niche button daba kar test data daalein.")
+            if st.button("➕ Add Test Data"):
+                cur = conn.cursor()
+                cur.execute("INSERT INTO patient_vitals (patient_name, heart_rate, blood_pressure, temperature, severity) VALUES ('Test Patient', 75, '120/80', 98.6, 'NORMAL')")
+                conn.commit()
+                st.success("Test data add ho gaya! Page refresh ho raha hai...")
+                st.rerun()
 
     except Exception as e:
-        st.error(f"Data load karne mein error: {e}")
+        st.error(f"⚠️ Data Error: {e}")
     
     finally:
         conn.close()
 else:
-    st.error("Database connection fail ho gaya. Please check your Secrets!")
+    st.warning("⚠️ Database connection nahi mil raha. Apne Streamlit Secrets aur Database URL check karein.")
