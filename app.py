@@ -7,14 +7,11 @@ app = Flask(__name__)
 
 # --- 1. DATABASE CONNECTION ---
 def get_db_connection():
-    # Render Dashboard se 'DATABASE_URL' uthayega
     db_url = os.environ.get('DATABASE_URL')
     
     if db_url:
-        # Render production environment ke liye ye line zaruri hai
         return psycopg2.connect(db_url)
     else:
-        # Aapka local computer ka connection (Sirf testing ke liye)
         return psycopg2.connect(
             host="localhost",
             database="health_monitor",
@@ -59,7 +56,6 @@ def settings():
 
 @app.route('/api/add_patient', methods=['POST'])
 def add_patient():
-    """Naya patient save karne ke liye"""
     data = request.get_json()
     name, age, cond = data.get('name'), data.get('age'), data.get('condition')
 
@@ -130,6 +126,6 @@ def get_stats():
 # --- 4. START SERVER ---
 
 if __name__ == "__main__":
-    # Render ke liye dynamic port 10000 set karna zaruri hai
+    
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
