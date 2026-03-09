@@ -22,28 +22,27 @@ def get_db_connection():
         port="5432"
     )
 
-# 2. Models Load karein
 def load_models():
-    # Scaler load karein (Data normalization ke liye)
+    # Load the scaler (for data normalization)
     with open('models/scaler.pkl', 'rb') as f:
         scaler = pickle.load(f)
     
-    # Isolation Forest load karein (Anomaly detection ke liye)
+    # Load the Isolation Forest (for anomaly detection).
     with open('models/isolation_forest.pkl', 'rb') as f:
         iso_forest = pickle.load(f)
         
-    # Autoencoder load karein (Deep Learning pattern recognition)
+    # Load the autoencoder (for deep learning pattern recognition)
     autoencoder = PatientAutoencoder(input_dim=5)
     autoencoder.load_state_dict(torch.load('models/autoencoder.pth'))
     autoencoder.eval()
     
     return scaler, iso_forest, autoencoder
 
-# 3. AI Anomaly Score aur Severity Calculation
+# 3. AI Anomaly Score and Severity Calculation
 def calculate_anomaly_score(vitals_arr, scaler, iso_forest, autoencoder):
     vitals_scaled = scaler.transform([vitals_arr])
     
-    # Isolation Forest Score (Negative value matlab anomaly)
+    # Isolation Forest Score (a negative value means an anomaly).
     if_score_raw = iso_forest.decision_function(vitals_scaled)[0]
     if_score = -if_score_raw # Isse higher score matlab zyada khatra
     
@@ -53,7 +52,7 @@ def calculate_anomaly_score(vitals_arr, scaler, iso_forest, autoencoder):
         reconstructed = autoencoder(input_tensor)
         ae_score = torch.mean((input_tensor - reconstructed)**2).item()
         
-    # Heuristic Combine: 70% Weight Autoencoder ko, 30% Isolation Forest ko
+    #Heuristic Combination: Assign 70% weight to the Autoencoder and 30% to the Isolation Forest.
     combined_score = ae_score * 0.7 + (if_score if if_score > 0 else 0) * 2.0
     
     # Thresholds based on Combined Score
