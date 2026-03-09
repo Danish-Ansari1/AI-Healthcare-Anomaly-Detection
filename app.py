@@ -95,7 +95,7 @@ def get_stats():
 
 @app.route('/api/vitals')
 def get_vitals():
-    """Graph aur Live feed ke liye"""
+    """for Graph and live feed"""
     conn = get_db_connection()
     if not conn: return jsonify({"status": "error"}), 500
     try:
