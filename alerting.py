@@ -2,7 +2,7 @@ import logging
 import json
 import time
 
-# Logging configuration: Isse Docker logs parseable banenge
+# Logging configuration: This will make Docker logs parseable.
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger("AlertSystem")
 
@@ -10,12 +10,12 @@ def send_alert(patient_id, vitals, severity, anomaly_score):
     """
     Advanced Alerting: Console warning + Docker JSON Event Message.
     """
-    # Sirf HIGH severity par alert trigger hoga
+    # An alert will be triggered only for HIGH severity
     if severity != "HIGH":
         return
 
     # 1. Structured Data for Docker Monitoring
-    # Is message ko 'docker logs | grep DOCKER_EVENT' se filter kiya ja sakta hai
+    # This message can be filtered using ‘docker logs | grep DOCKER_EVENT’
     alert_payload = {
         "event_type": "CRITICAL_ANOMALY",
         "timestamp": time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -39,4 +39,4 @@ def send_alert(patient_id, vitals, severity, anomaly_score):
     logger.warning(f"  Action     : Dispatching Emergency Response...")
     logger.warning("="*60 + "\n")
 
-    # Future integration: Yahan aap Email/SMS/Webhook logic add kar sakte hain
+    # Future integration: Here you can add Email/SMS/Webhook logic
