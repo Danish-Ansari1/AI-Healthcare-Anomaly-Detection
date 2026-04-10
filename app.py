@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, render_template, jsonify, request 
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
@@ -14,7 +14,7 @@ def get_db_connection():
         if db_url:
             return psycopg2.connect(db_url)
         else:
-            # Local Fallback
+            # Local Fallback 
             return psycopg2.connect(
                 host="localhost",
                 database="health_monitor",
@@ -30,6 +30,7 @@ def get_db_connection():
 
 @app.route('/')
 def index():
+    
     return render_template('index.html')
 
 @app.route('/alerts')
@@ -61,7 +62,6 @@ def settings():
 
 @app.route('/api/stats')
 def get_stats():
-    """Dashboard ke upar waale boxes (Total, Critical, Warning) ke liye"""
     conn = get_db_connection()
     if not conn: 
         return jsonify({"status": "error", "message": "DB Connection Fail"}), 500
@@ -95,7 +95,6 @@ def get_stats():
 
 @app.route('/api/vitals')
 def get_vitals():
-    """for Graph and live feed"""
     conn = get_db_connection()
     if not conn: return jsonify({"status": "error"}), 500
     try:
@@ -118,6 +117,7 @@ def get_vitals():
 
 @app.route('/api/add_patient', methods=['POST'])
 def add_patient():
+    # 'request' ab properly kaam karega
     data = request.get_json()
     name = data.get('name')
     age = data.get('age')
@@ -145,5 +145,6 @@ def add_patient():
 # --- 4. START SERVER ---
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+   # Variable defined here so it works local and on cloud
+   port = int(os.environ.get("PORT", 5000))
+   app.run(host='0.0.0.0', port=port, debug=True)
