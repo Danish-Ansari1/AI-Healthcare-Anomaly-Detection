@@ -39,4 +39,4 @@ def send_alert(patient_id, vitals, severity, anomaly_score):
     logger.warning(f"  Action     : Dispatching Emergency Response...")
     logger.warning("="*60 + "\n")
 
-    # Future integration: Here you can add Email/SMS/Webhook logic
+   
