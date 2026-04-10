@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from flask import Flask,jsonify
-=======
 from flask import Flask, jsonify
->>>>>>> 81d88ee (app.py)
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
