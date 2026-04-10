@@ -7,3 +7,8 @@ Flask==3.0.0
 flask-cors==4.0.0
 numpy==1.26.2
 pandas==2.1.4
+<<<<<<< HEAD
+=======
+gunicornd
+streamlit
+>>>>>>> 81d88ee (app.py)
