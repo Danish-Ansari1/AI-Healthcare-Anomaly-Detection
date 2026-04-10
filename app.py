@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask,jsonify
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
