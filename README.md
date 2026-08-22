@@ -6,9 +6,7 @@ This project is a real-time health monitoring system that uses Machine Learning 
 - **Real-time Detection:** Monitors vitals and detects irregularities instantly.
 - **Advanced ML Models:** Uses Autoencoders and Isolation Forest.
 - **Interactive Dashboard:** Visual interface for monitoring patients.
-- ## 🎥 Project Demo Video
-https://youtu.be/XyuXGK5QePI?feature=shared
-
+  
 # AI Healthcare Anomaly Detection
 
 This project is a real-time health monitoring system that uses Machine Learning to detect anomalies in patient data.
